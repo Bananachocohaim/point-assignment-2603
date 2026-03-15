@@ -39,3 +39,6 @@ out/
 # H2 Database
 *.mv.db
 *.trace.db
+
+# 히스토리 폴더 무시
+.history

@@ -16,12 +16,17 @@ public class ApiGlobalExceptionHandler {
     //파라미터 검증 오류
     @ExceptionHandler(value = {MethodArgumentNotValidException.class})
     public ResponseEntity<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, ex.getBindingResult()));
+    }
+
+    @ExceptionHandler(value = {PointApiException.class})
+    public ResponseEntity<Object> handlePointApiException(PointApiException ex) {
+        return ResponseEntity.status(ex.getErrorCode().getStatus()).body(ErrorResponse.of(ex.getErrorCode()));
     }
 
     @ExceptionHandler(value = {Exception.class})
     public ResponseEntity<Object> handleGlobalException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error");
+        log.error("Exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 }

@@ -16,6 +16,10 @@ public record ErrorResponse(
     String errorMessage,        //에러 메시지
     List<FieldError> paramErrors    //파라미터 오류시 상세 리스트
 ) {
+    public static ErrorResponse of(ErrorCode code) {
+        return new ErrorResponse(LocalDateTime.now(), code.getStatus(), code.getErrorCode(), code.getErrorMessage(), List.of());
+    }
+
     public static ErrorResponse of (ErrorCode code, BindingResult bindingResult){
         return new ErrorResponse(LocalDateTime.now(),  code.getStatus(), code.getErrorCode(), code.getErrorMessage(), FieldError.of(bindingResult));
     }

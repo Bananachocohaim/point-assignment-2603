@@ -26,7 +26,8 @@ spring:
 
     sql:
         init:
-            mode: always            # 항상 schema.sql 실행
+            mode: always            # 항상 schema.sql, data.sql 실행
+            continue-on-error: true # data.sql 중복 등 오류 시에도 기동 (재실행 시 WLT-001 이미 있으면 무시)
 logging:
     level:
         root: info                          

@@ -10,7 +10,13 @@ public enum ErrorCode {
     ENTITY_NOT_FOUND(400, "C003", "해당 엔티티를 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(500, "C004", "서버 내부 오류가 발생했습니다."),
     INVALID_TYPE_VALUE(400, "C005", "요청 타입이 일치하지 않습니다."),
-    HANDLE_ACCESS_DENIED(403, "C006", "접근 권한이 없습니다.");
+    HANDLE_ACCESS_DENIED(403, "C006", "접근 권한이 없습니다."),
+    WALLET_NOT_FOUND(404, "P001", "포인트 지갑을 찾을 수 없습니다."),
+    BALANCE_NOT_ENOUGH(400, "P002", "잔액이 부족합니다."),
+    BALANCE_LIMIT_EXCEEDED(400, "P003", "보유 한도를 초과합니다."),
+    DUPLICATE_EARN_RECORD(409, "P004", "이미 존재하는 적립 건입니다."),
+    DUPLICATE_USAGE_RECORD(409, "P005", "이미 존재하는 사용 건입니다."),
+    ;
 
     private final int status;
     private final String errorCode;

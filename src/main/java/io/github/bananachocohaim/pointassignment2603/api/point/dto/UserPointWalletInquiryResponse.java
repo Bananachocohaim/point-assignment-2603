@@ -10,13 +10,14 @@ public record UserPointWalletInquiryResponse(
 ) { 
     //고객 포인트 지갑 상세
     public record WalletDetail (
+        String walletId,        //고객 지갑 ID
         String walletType,      //지갑 타입 FREE, CASH (무료, 충전)
         long balance,           //잔액
         LocalDate nextExpirationDate,   //다음 포인트 만료일
         long expiringAmount             //만료 예정잔액
     ) {
-        public static WalletDetail of(String uswalletTypeerId, Long balance, LocalDate nextExpirationDate, long expiringAmount) {
-            return new WalletDetail(uswalletTypeerId, balance, nextExpirationDate, expiringAmount);
+        public static WalletDetail of(String walletId, String walletType, Long balance, LocalDate nextExpirationDate, long expiringAmount) {
+            return new WalletDetail(walletId, walletType, balance, nextExpirationDate, expiringAmount);
         }
     }
 
