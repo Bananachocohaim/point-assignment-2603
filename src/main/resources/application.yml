@@ -1,0 +1,38 @@
+spring:
+    application:
+        name: pointAssignment2603
+    
+    datasource:
+       url: jdbc:h2:file:./data/pointdb;MODE=MySQL;
+       driver-class-name: org.h2.Driver
+       username: sa
+       password:
+    
+    h2:
+        console:
+            enabled: true
+            path: /h2-console
+            settings:
+                web-allow-others: true
+
+    jpa:
+        hibernate:
+            ddl-auto: none         # DDL 자동 생성 비활성화
+        properties:
+            hibernate:
+                format_sql: true      # SQL을 가독성 좋게 포맷팅
+                show_sql: false       # logging.level에서 설정하므로 false
+                highlight_sql: true   # SQL에 색상
+
+    sql:
+        init:
+            mode: always            # 항상 schema.sql 실행
+logging:
+    level:
+        root: info                          
+        io.github.bananachocohaim.pointassignment2603: debug 
+        org.hibernate.SQL: debug            # 실행되는 SQL 쿼리 보기
+        org.hibernate.orm.jdbc.bind: trace  # SQL에 들어가는 파라미터(값) 확인
+    charset:
+        console: UTF-8   
+        file: UTF-8      
