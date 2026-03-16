@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>포인트 관리 어드민</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#fff;color:#111;font-size:13px;line-height:1.5}
+.page{max-width:1200px;margin:0 auto;padding:28px 18px 80px}
+h1{font-size:18px;font-weight:700;padding-bottom:10px;border-bottom:2px solid #111;margin-bottom:28px}
+h2{font-size:14px;font-weight:700;margin-bottom:10px;color:#333}
+section{margin-bottom:36px}
+hr.sep{border:none;border-top:1px solid #eee;margin:32px 0}
+
+/* 테이블 */
+.tbl-wrap{border:1px solid #d9d9d9;border-radius:4px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f7f7f7;padding:7px 10px;text-align:left;font-weight:600;color:#555;border-bottom:1px solid #d9d9d9;white-space:nowrap}
+tbody td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafafa}
+tbody tr.selected{background:#fffbe6 !important}
+tbody tr.clickable{cursor:pointer}
+
+/* 서브 테이블 */
+.sub-tbl-wrap{margin:4px 20px 8px 20px;border:1px solid #e8e8e8;border-radius:3px;overflow:hidden}
+.sub-tbl-wrap table thead th{background:#f0f4ff;font-size:11px;padding:5px 8px;color:#445}
+.sub-tbl-wrap table tbody td{padding:5px 8px;font-size:11px;border-bottom:1px solid #f4f4f4;color:#333}
+.sub-tbl-wrap table tbody tr:last-child td{border-bottom:none}
+.sub-tbl-wrap table tfoot td{padding:5px 8px;font-size:11px;background:#f7f7f7;font-weight:600;border-top:1px solid #d9d9d9}
+.sub-row td{padding:0 !important;background:#fff !important}
+.sub-row td:hover{background:#fff !important}
+
+/* 버튼 */
+button{cursor:pointer;font-size:12px;font-family:inherit}
+.btn{padding:5px 11px;border:1px solid #bbb;background:#fff;border-radius:3px;color:#333}
+.btn:hover{background:#f5f5f5}
+.btn-dark{background:#333;color:#fff;border-color:#333}
+.btn-dark:hover{background:#555}
+.btn-blue{background:#1565c0;color:#fff;border-color:#1565c0}
+.btn-blue:hover{background:#1976d2}
+.btn-red{background:#c62828;color:#fff;border-color:#c62828}
+.btn-red:hover{background:#d32f2f}
+.btn-xs{padding:2px 7px;font-size:11px}
+
+/* 입력 */
+input,select{border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-size:12px;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:#333}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* 탭 */
+.tabs{display:flex;gap:0;border-bottom:1px solid #ddd;margin-bottom:0}
+.tab-btn{padding:8px 14px;font-size:12px;font-weight:600;color:#888;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.tab-btn.active{color:#111;border-bottom-color:#111}
+.tab-pane{display:none;padding:12px 0}
+.tab-pane.active{display:block}
+
+/* 필터 */
+.filter-row{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.filter-row label{font-size:12px;color:#666;margin-right:2px}
+.fbtn{padding:3px 9px;font-size:11px;border:1px solid #ccc;background:#fff;border-radius:10px;cursor:pointer}
+.fbtn.active,.fbtn:hover{background:#333;color:#fff;border-color:#333}
+
+/* 뱃지 */
+.badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-active{background:#e8f5e9;color:#2e7d32}
+.b-expired{background:#fff3e0;color:#e65100}
+.b-cancelled{background:#fce4ec;color:#880e4f}
+.b-completed{background:#e3f2fd;color:#1565c0}
+.b-partial{background:#fffde7;color:#f57f17}
+.b-full{background:#fce4ec;color:#880e4f}
+.b-use{background:#e8f5e9;color:#2e7d32}
+.b-expire{background:#fff3e0;color:#e65100}
+.b-re{background:#e8eaf6;color:#283593}
+
+/* 수치 */
+.num{text-align:right;font-family:'Consolas',monospace}
+.pos{color:#1565c0;font-weight:600}
+.neg{color:#c62828;font-weight:600}
+
+/* 지갑 선택 패널 */
+#wallet-detail{display:none;border:1px solid #d9d9d9;border-radius:4px;padding:16px;margin-top:12px;background:#fafeff}
+.wallet-summary{display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee}
+.wallet-summary .item{font-size:12px;color:#555}.wallet-summary .item strong{color:#111}
+
+/* 거래 폼 */
+.op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:8px}
+.op-card{border:1px solid #e0e0e0;border-radius:4px;padding:14px}
+.op-card h3{font-size:13px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee}
+.op-card .fields{display:flex;flex-direction:column;gap:6px}
+.op-card label{font-size:11px;color:#666;display:block;margin-bottom:1px}
+.op-card input,.op-card select{width:100%}
+.op-card .act{margin-top:8px;text-align:right}
+
+/* 토스트 */
+#toast{position:fixed;bottom:20px;right:20px;padding:9px 14px;border-radius:4px;font-size:12px;opacity:0;transform:translateY(4px);transition:all .22s;pointer-events:none;z-index:9999}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.ok{background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32}
+#toast.err{background:#fce4ec;border:1px solid #f48fb1;color:#880e4f}
+
+/* 응답 팝업 */
+#resp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+#resp-overlay.open{display:flex}
+#resp-modal{background:#fff;border-radius:6px;width:560px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+#resp-modal .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee}
+#resp-modal .modal-hd .title{font-size:13px;font-weight:700}
+#resp-modal .modal-hd .title.ok{color:#2e7d32}
+#resp-modal .modal-hd .title.err{color:#c62828}
+#resp-modal .modal-hd button{background:none;border:none;font-size:18px;line-height:1;color:#888;cursor:pointer;padding:0 4px}
+#resp-modal .modal-hd button:hover{color:#111}
+#resp-modal .modal-body{padding:14px 16px;overflow-y:auto;flex:1}
+#resp-modal pre{font-family:'Consolas',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;margin:0}
+#resp-modal .modal-ft{padding:10px 16px;border-top:1px solid #eee;text-align:right}
+
+.empty{text-align:center;color:#aaa;padding:20px;font-size:12px}
+.loading{color:#bbb;font-size:12px;padding:10px}
+code{font-family:'Consolas',monospace;font-size:11px;background:#f5f5f5;padding:1px 4px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>포인트 관리 어드민</h1>
+
+<!-- ── 정책 관리 ── -->
+<section>
+  <h2>정책 관리</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th style="width:220px">키</th><th style="width:120px">값 (원)</th><th>설명</th><th style="width:130px">최종 수정</th><th style="width:50px"></th></tr></thead>
+      <tbody id="policy-tbody"><tr><td colspan="5" class="loading">로딩 중…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="sep"/>
+
+<!-- ── 지갑 조회 ── -->
+<section>
+  <h2>지갑 조회</h2>
+  <div class="row" style="margin-bottom:10px">
+    <input id="userId-input" type="text" placeholder="userId" style="width:180px"/>
+    <button class="btn btn-dark" onclick="searchWallets()">조회</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table id="wallet-table">
+      <thead><tr><th>지갑ID</th><th>사용자ID</th><th>유형</th><th>잔액</th><th>보유한도</th><th>다음만료일</th><th>만료예정금액</th></tr></thead>
+      <tbody id="wallet-tbody"><tr><td colspan="6" class="loading">지갑 목록을 불러오는 중…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- 선택된 지갑 상세 -->
+  <div id="wallet-detail">
+    <div class="wallet-summary" id="ws-summary"></div>
+
+    <!-- 보유한도 변경 -->
+    <div class="row" style="margin-bottom:14px">
+      <label style="font-size:12px;color:#666">보유한도 변경:</label>
+      <input id="mbl-input" type="number" style="width:110px" min="1"/>
+      <span style="font-size:12px">원</span>
+      <button class="btn" onclick="updateMaxBalance()">변경</button>
+    </div>
+
+    <!-- 탭 -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('earn',this)">적립 이력</button>
+      <button class="tab-btn" onclick="switchTab('use',this)">사용 이력</button>
+      <button class="tab-btn" onclick="switchTab('cancel',this)">취소 이력</button>
+    </div>
+
+    <!-- 적립 이력 -->
+    <div id="pane-earn" class="tab-pane active">
+      <div class="filter-row">
+        <label>상태:</label>
+        <button class="fbtn active" onclick="loadEarnHistory(null,this)">전체</button>
+        <button class="fbtn" onclick="loadEarnHistory('ACTIVE',this)">ACTIVE</button>
+        <button class="fbtn" onclick="loadEarnHistory('EXPIRED',this)">EXPIRED</button>
+        <button class="fbtn" onclick="loadEarnHistory('CANCELLED',this)">CANCELLED</button>
+      </div>
+      <div id="earn-result"></div>
+    </div>
+
+    <!-- 사용 이력 -->
+    <div id="pane-use" class="tab-pane">
+      <div class="filter-row">
+        <label>유형:</label>
+        <button class="fbtn active" onclick="loadUsageHistory('USE',this,'use')">사용</button>
+      </div>
+      <div id="use-result"></div>
+    </div>
+
+    <!-- 취소 이력 -->
+    <div id="pane-cancel" class="tab-pane">
+      <div class="filter-row">
+        <label>유형:</label>
+        <button class="fbtn active" onclick="loadUsageHistory(null,this,'cancel')">전체</button>
+        <button class="fbtn" onclick="loadUsageHistory('PARTIAL_CANCEL',this,'cancel')">부분취소</button>
+        <button class="fbtn" onclick="loadUsageHistory('FULL_CANCEL',this,'cancel')">전체취소</button>
+      </div>
+      <div id="cancel-result"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="sep"/>
+
+<!-- ── 거래 입력 ── -->
+<section>
+  <h2>거래 입력</h2>
+  <div class="op-grid">
+
+    <!-- 적립 -->
+    <div class="op-card">
+      <h3>📥 포인트 적립</h3>
+      <div class="fields">
+        <div><label>지갑 ID</label><input id="earn-walletId" placeholder="WLT-..."/></div>
+        <div><label>주문번호</label><input id="earn-orderNo" placeholder="ORD-001"/></div>
+        <div><label>적립 유형</label>
+          <select id="earn-earnType">
+            <option value="ORDER">ORDER (주문적립)</option>
+            <option value="MANUAL">MANUAL (수기적립)</option>
+            <option value="EVENT">EVENT (이벤트)</option>
+          </select>
+        </div>
+        <div><label>금액 (원)</label><input id="earn-amount" type="number" min="1" placeholder="10000"/></div>
+      </div>
+      <div class="act"><button class="btn btn-blue" onclick="doEarn()">적립</button></div>
+    </div>
+
+    <!-- 적립 취소 -->
+    <div class="op-card">
+      <h3>❌ 적립 취소</h3>
+      <div class="fields">
+        <div><label>지갑 ID</label><input id="earnCancel-walletId" placeholder="WLT-..."/></div>
+        <div><label>적립 ID</label><input id="earnCancel-earnId" placeholder="ERN-..."/></div>
+      </div>
+      <div class="act"><button class="btn btn-red" onclick="doEarnCancel()">적립 취소</button></div>
+    </div>
+
+    <!-- 사용 -->
+    <div class="op-card">
+      <h3>💳 포인트 사용</h3>
+      <div class="fields">
+        <div><label>지갑 ID</label><input id="use-walletId" placeholder="WLT-..."/></div>
+        <div><label>주문번호</label><input id="use-orderNo" placeholder="ORD-001"/></div>
+        <div><label>금액 (원)</label><input id="use-amount" type="number" min="1" placeholder="5000"/></div>
+      </div>
+      <div class="act"><button class="btn btn-blue" onclick="doUse()">사용</button></div>
+    </div>
+
+    <!-- 사용 취소 -->
+    <div class="op-card">
+      <h3>↩️ 사용 취소</h3>
+      <div class="fields">
+        <div><label>지갑 ID</label><input id="useCancel-walletId" placeholder="WLT-..."/></div>
+        <div><label>원거래 사용 ID</label><input id="useCancel-originalUsageId" placeholder="USG-..."/></div>
+        <div><label>취소 금액 (원)<span style="color:#aaa;font-size:10px"> (전체취소 시 생략 가능)</span></label><input id="useCancel-cancelAmount" type="number" min="1" placeholder="3000"/></div>
+        <div><label>취소 유형</label>
+          <select id="useCancel-cancelType">
+            <option value="PARTIAL_CANCEL">PARTIAL_CANCEL (부분취소)</option>
+            <option value="FULL_CANCEL">FULL_CANCEL (전체취소)</option>
+          </select>
+        </div>
+      </div>
+      <div class="act"><button class="btn btn-red" onclick="doUseCancel()">사용 취소</button></div>
+    </div>
+
+  </div>
+  <!-- 결과 -->
+</section>
+
+</div><!-- /page -->
+<div id="toast"></div>
+
+<!-- 응답 팝업 -->
+<div id="resp-overlay" onclick="closeRespModal(event)">
+  <div id="resp-modal">
+    <div class="modal-hd">
+      <span id="resp-title" class="title">응답</span>
+      <button onclick="closeRespModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <pre id="resp-body"></pre>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-dark btn-xs" onclick="closeRespModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 유틸 ──────────────────────────────────
+const fmt = v => v != null ? Number(v).toLocaleString() : '-';
+const fd  = v => v || '-';
+
+function toast(msg, type='ok'){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  clearTimeout(el._t); el._t = setTimeout(()=>el.className='', 3200);
+}
+
+function earnBadge(s){
+  const m={ACTIVE:'b-active',EXPIRED:'b-expired',CANCELLED:'b-cancelled',RE_EARN:'b-re'};
+  return `<span class="badge ${m[s]||''}">${s||''}</span>`;
+}
+function usageBadge(s){
+  const m={COMPLETED:'b-completed',PARTIAL_CANCEL:'b-partial',FULL_CANCEL:'b-full',USE:'b-use',EXPIRE:'b-expire'};
+  const label={COMPLETED:'완료',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',USE:'사용',EXPIRE:'만료차감',PARTIAL:'부분취소됨',FULL:'전체취소됨'};
+  return `<span class="badge ${m[s]||''}">${label[s]||s||''}</span>`;
+}
+function typeLabel(t){
+  const m={USE:'사용',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',EXPIRE:'만료차감',
+    ORDER:'주문',MANUAL:'수기',EVENT:'이벤트',RE_EARN:'재적립'};
+  return m[t]||t||'-';
+}
+
+// ── 정책 ──────────────────────────────────
+async function loadPolicies(){
+  try{
+    const data = await fetch('/api/admin/policy').then(r=>r.json());
+    document.getElementById('policy-tbody').innerHTML = data.map(p=>`
+      <tr id="pr-${p.policyKey}">
+        <td><code>${p.policyKey}</code></td>
+        <td id="pv-${p.policyKey}" class="num"><strong>${fmt(p.policyValue)}</strong></td>
+        <td style="color:#555">${p.description||''}</td>
+        <td style="color:#888;font-size:11px">${p.updatedAt?new Date(p.updatedAt).toLocaleString('ko-KR'):'-'}</td>
+        <td><button class="btn btn-xs" onclick="openPE('${p.policyKey}','${p.policyValue}')">수정</button></td>
+      </tr>
+      <tr style="display:none" id="pe-${p.policyKey}">
+        <td colspan="5" style="padding:6px 10px;background:#fffde7">
+          <form style="display:flex;gap:6px;align-items:center" onsubmit="savePolicy(event,'${p.policyKey}')">
+            <input type="number" id="pi-${p.policyKey}" value="${p.policyValue}" min="1" style="width:110px"/>
+            <button type="submit" class="btn btn-xs btn-dark">저장</button>
+            <button type="button" class="btn btn-xs" onclick="closePE('${p.policyKey}')">취소</button>
+          </form>
+        </td>
+      </tr>`).join('');
+  } catch { document.getElementById('policy-tbody').innerHTML='<tr><td colspan="5" class="empty">로드 실패</td></tr>'; }
+}
+function openPE(k,v){
+  document.querySelectorAll('[id^="pe-"]').forEach(r=>r.style.display='none');
+  document.getElementById(`pe-${k}`).style.display='';
+  document.getElementById(`pi-${k}`).focus();
+}
+function closePE(k){ document.getElementById(`pe-${k}`).style.display='none'; }
+async function savePolicy(e,k){
+  e.preventDefault();
+  const val = document.getElementById(`pi-${k}`).value;
+  try{
+    const r = await fetch(`/api/admin/policy/${k}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:val,updatedBy:'ADMIN'})});
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    document.getElementById(`pv-${k}`).innerHTML=`<strong>${fmt(d.policyValue)}</strong>`;
+    closePE(k); toast(`[${k}] → ${fmt(d.policyValue)}원`);
+  } catch { toast('저장 실패','err'); }
+}
+
+// ── 지갑 조회 ──────────────────────────────
+let selectedWallet = null;
+
+function renderWalletRows(data){
+  if(!data.length){ document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="empty">지갑 없음</td></tr>'; return; }
+  document.getElementById('wallet-tbody').innerHTML = data.map(w=>`
+    <tr class="clickable" onclick="selectWallet(${JSON.stringify(w).replace(/"/g,'&quot;')})">
+      <td><code>${w.walletId}</code></td>
+      <td style="color:#888;font-size:11px">${w.userId||'-'}</td>
+      <td>${w.walletType==='FREE'
+        ? '<span class="badge b-active">FREE</span>'
+        : '<span class="badge b-re">CASH</span>'}</td>
+      <td class="num">${fmt(w.balance)}원</td>
+      <td class="num">${fmt(w.maxBalanceLimit)}원</td>
+      <td>${fd(w.nextExpirationDate)}</td>
+      <td class="num">${w.expiringAmount?fmt(w.expiringAmount)+'원':'-'}</td>
+    </tr>`).join('');
+}
+
+async function loadAllWallets(){
+  document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="loading">불러오는 중…</td></tr>';
+  try{
+    const data = await fetch('/api/admin/wallet').then(r=>r.json());
+    renderWalletRows(data);
+  } catch { document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="empty">불러오기 실패</td></tr>'; }
+}
+
+async function searchWallets(){
+  const userId = document.getElementById('userId-input').value.trim();
+  if(!userId){ await loadAllWallets(); return; }
+  document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="loading">조회 중…</td></tr>';
+  document.getElementById('wallet-detail').style.display='none';
+  selectedWallet = null;
+  try{
+    const data = await fetch(`/api/admin/wallet/search?userId=${encodeURIComponent(userId)}`).then(r=>r.json());
+    renderWalletRows(data);
+  } catch { document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="empty">조회 실패</td></tr>'; }
+}
+document.getElementById('userId-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchWallets();});
+
+function selectWallet(w){
+  selectedWallet = w;
+  // 행 선택 표시
+  document.querySelectorAll('#wallet-tbody tr').forEach((tr,i)=>{
+    tr.classList.toggle('selected', tr.querySelector('code')?.textContent===w.walletId);
+  });
+  // 요약
+  document.getElementById('ws-summary').innerHTML=`
+    <div class="item">ID: <strong>${w.walletId}</strong></div>
+    <div class="item">유형: <strong>${w.walletType}</strong></div>
+    <div class="item">잔액: <strong id="ws-balance">${fmt(w.balance)}원</strong></div>
+    <div class="item">보유한도: <strong id="ws-mbl">${fmt(w.maxBalanceLimit)}원</strong></div>
+    <div class="item">다음만료: <strong>${fd(w.nextExpirationDate)}</strong></div>
+    <div class="item">만료예정: <strong>${w.expiringAmount?fmt(w.expiringAmount)+'원':'-'}</strong></div>`;
+  // FREE 타입만 보유한도 변경 가능
+  const isFree = w.walletType === 'FREE';
+  document.getElementById('mbl-input').value = w.maxBalanceLimit;
+  document.getElementById('mbl-input').disabled = !isFree;
+  const mblBtn = document.querySelector('[onclick="updateMaxBalance()"]');
+  if(mblBtn){ mblBtn.disabled = !isFree; mblBtn.title = isFree ? '' : 'FREE 타입만 변경 가능'; }
+  document.getElementById('wallet-detail').style.display='block';
+  // 거래 폼에 지갑ID 자동 입력
+  ['earn-walletId','earnCancel-walletId','use-walletId','useCancel-walletId'].forEach(id=>{
+    document.getElementById(id).value = w.walletId;
+  });
+  // 적립 이력 기본 로드
+  loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
+}
+
+// ── 보유한도 변경 ──────────────────────────
+async function updateMaxBalance(){
+  if(!selectedWallet){ toast('지갑을 선택하세요','err'); return; }
+  if(selectedWallet.walletType !== 'FREE'){ toast('FREE 타입 지갑만 보유한도를 변경할 수 있습니다.','err'); return; }
+  const val = document.getElementById('mbl-input').value;
+  try{
+    const r = await fetch(`/api/admin/wallet/${selectedWallet.walletId}/max-balance`,
+      {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({maxBalanceLimit:Number(val)})});
+    if(!r.ok){
+      const err = await r.json().catch(()=>({}));
+      toast(err.errorMessage || '변경 실패', 'err'); return;
+    }
+    const d = await r.json();
+    document.getElementById('ws-mbl').textContent = fmt(d.maxBalanceLimit)+'원';
+    toast(`보유한도 → ${fmt(d.maxBalanceLimit)}원`);
+  } catch { toast('변경 실패','err'); }
+}
+
+// ── 탭 ──────────────────────────────────
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`pane-${name}`).classList.add('active');
+  btn.classList.add('active');
+  if(!selectedWallet) return;
+  if(name==='earn')   loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
+  if(name==='use')    loadUsageHistory(null, document.querySelector('#pane-use .fbtn.active'), 'use');
+  if(name==='cancel') loadUsageHistory(null, document.querySelector('#pane-cancel .fbtn.active'), 'cancel');
+}
+
+// ── 적립 이력 ──────────────────────────────
+async function loadEarnHistory(status, btn){
+  if(!selectedWallet) return;
+  if(btn){ btn.closest('.filter-row').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const el = document.getElementById('earn-result');
+  el.innerHTML='<div class="loading">로딩 중…</div>';
+  const qs = status ? `?earnStatus=${status}` : '';
+  try{
+    const data = await fetch(`/api/admin/wallet/${selectedWallet.walletId}/earn-history${qs}`).then(r=>r.json());
+    if(!data.length){ el.innerHTML='<div class="empty">이력 없음</div>'; return; }
+    const totalOrig = data.reduce((s,r)=>s+r.originalAmount,0);
+    const totalRem  = data.reduce((s,r)=>s+r.remainingAmount,0);
+    el.innerHTML=`<div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>적립ID</th><th>유형</th><th>상태</th><th>주문번호</th>
+        <th class="num">원금</th><th class="num">잔액</th>
+        <th>만료일</th><th>적립일</th><th>원본적립ID</th>
+      </tr></thead><tbody>
+      ${data.map(r=>`<tr>
+        <td><code>${r.earnId}</code></td>
+        <td>${typeLabel(r.earnType)}</td>
+        <td>${earnBadge(r.earnStatus)}</td>
+        <td>${fd(r.orderNo)}</td>
+        <td class="num">${fmt(r.originalAmount)}</td>
+        <td class="num ${r.remainingAmount<r.originalAmount?'neg':''}">${fmt(r.remainingAmount)}</td>
+        <td>${fd(r.expirationDate)}</td>
+        <td>${fd(r.createdDate)}</td>
+        <td style="font-size:11px;color:#999">${r.originalEarnId||'-'}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="4" style="text-align:right;font-weight:700">합계 (${data.length}건)</td>
+        <td class="num" style="font-weight:700">${fmt(totalOrig)}</td>
+        <td class="num ${totalRem<totalOrig?'neg':''}" style="font-weight:700">${fmt(totalRem)}</td>
+        <td colspan="3"></td>
+      </tr></tfoot></table></div>`;
+  } catch { el.innerHTML='<div class="empty">조회 실패</div>'; }
+}
+
+// ── 사용/취소 이력 ──────────────────────────
+async function loadUsageHistory(usageType, btn, mode){
+  if(!selectedWallet) return;
+  if(btn){ btn.closest('.filter-row').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  const isCancel = mode==='cancel';
+  const elId = isCancel ? 'cancel-result' : 'use-result';
+  const el = document.getElementById(elId);
+  el.innerHTML='<div class="loading">로딩 중…</div>';
+
+  try{
+    let data;
+    if(usageType){
+      data = await fetch(`/api/admin/wallet/${selectedWallet.walletId}/usage-history?usageType=${usageType}`).then(r=>r.json());
+    } else if(isCancel) {
+      const results = await Promise.all(['PARTIAL_CANCEL','FULL_CANCEL'].map(t=>
+        fetch(`/api/admin/wallet/${selectedWallet.walletId}/usage-history?usageType=${t}`).then(r=>r.json())
+      ));
+      data = results.flat().sort((a,b)=>(b.createdDate||'').localeCompare(a.createdDate||''));
+    } else {
+      data = await fetch(`/api/admin/wallet/${selectedWallet.walletId}/usage-history?usageType=USE`).then(r=>r.json());
+    }
+    if(!data.length){ el.innerHTML='<div class="empty">이력 없음</div>'; return; }
+
+    const rows = data.map(r => renderUsageRow(r, isCancel)).join('');
+    const colHeader = isCancel
+      ? `<th>취소ID</th><th>유형</th><th>상태</th><th>주문번호</th><th class="num">취소금액</th><th>원거래ID</th><th>처리일</th>`
+      : `<th>사용ID</th><th>유형</th><th>상태</th><th>주문번호</th><th class="num">금액</th><th>처리일</th>`;
+    el.innerHTML=`<div class="tbl-wrap"><table><thead><tr>${colHeader}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e){ el.innerHTML='<div class="empty">조회 실패</div>'; }
+}
+
+function renderUsageRow(r, isCancel){
+  const mainCols = isCancel
+    ? `<td><code>${r.usageId}</code></td>
+       <td>${usageBadge(r.usageType)}</td>
+       <td>${usageBadge(r.usageStatus)}</td>
+       <td>${fd(r.orderNo)}</td>
+       <td class="num neg">${fmt(r.usedAmount)}</td>
+       <td style="font-size:11px"><code>${r.originalUsageId||'-'}</code></td>
+       <td>${fd(r.createdDate)}</td>`
+    : `<td><code>${r.usageId}</code></td>
+       <td>${usageBadge(r.usageType)}</td>
+       <td>${usageBadge(r.usageStatus)}</td>
+       <td>${fd(r.orderNo)}</td>
+       <td class="num neg">${fmt(r.usedAmount)}</td>
+       <td>${fd(r.createdDate)}</td>`;
+
+  const colSpan = isCancel ? 7 : 6;
+
+  // 원거래 서브행 (취소인 경우)
+  let origSubRow = '';
+  if(isCancel && r.originalUsage){
+    const ou = r.originalUsage;
+    origSubRow = `<tr class="sub-row"><td colspan="${colSpan}">
+      <div class="sub-tbl-wrap">
+        <table><thead><tr><th colspan="5" style="background:#fff9e6;color:#856404">▶ 원거래 정보</th></tr>
+          <tr><th>사용ID</th><th>유형</th><th>주문번호</th><th class="num">금액</th><th>상태</th></tr>
+        </thead><tbody><tr>
+          <td><code>${ou.usageId}</code></td>
+          <td>${usageBadge(ou.usageType)}</td>
+          <td>${fd(ou.orderNo)}</td>
+          <td class="num neg">${fmt(ou.usedAmount)}</td>
+          <td>${usageBadge(ou.usageStatus)}</td>
+        </tr></tbody></table>
+      </div></td></tr>`;
+  }
+
+  // 매핑 서브 테이블
+  let mappingSubRow = '';
+  if(r.earnMappings && r.earnMappings.length){
+    const label = isCancel ? '▶ 환급 적립건 상세' : '▶ 차감 적립건 상세';
+    const color = isCancel ? '#e8f5e9' : '#e3f2fd';
+    const fontColor = isCancel ? '#2e7d32' : '#1565c0';
+    let totalAmt = 0;
+    const mRows = r.earnMappings.map(m=>{
+      totalAmt += m.mappingAmount;
+      const amtClass = isCancel ? 'pos' : 'neg';
+      const amtSign = isCancel ? '+' : '-';
+      return `<tr>
+        <td><code>${m.earnId}</code></td>
+        <td>${typeLabel(m.earnType)}</td>
+        <td>${earnBadge(m.earnStatus)}</td>
+        <td class="num">${fmt(m.originalAmount)}</td>
+        <td class="num">${fmt(m.remainingAmount)}</td>
+        <td class="num ${amtClass}">${amtSign}${fmt(m.mappingAmount)}</td>
+      </tr>`;
+    }).join('');
+    mappingSubRow = `<tr class="sub-row"><td colspan="${colSpan}">
+      <div class="sub-tbl-wrap">
+        <table><thead>
+          <tr><th colspan="6" style="background:${color};color:${fontColor}">${label}</th></tr>
+          <tr><th>적립ID</th><th>유형</th><th>상태</th><th class="num">원금</th><th class="num">현재잔액</th><th class="num">${isCancel?'환급금액':'차감금액'}</th></tr>
+        </thead><tbody>${mRows}</tbody>
+        <tfoot><tr>
+          <td colspan="5" style="text-align:right">합계</td>
+          <td class="num ${isCancel?'pos':'neg'}">${isCancel?'+':'-'}${fmt(totalAmt)}</td>
+        </tr></tfoot></table>
+      </div></td></tr>`;
+  }
+
+  return `<tr>${mainCols}</tr>${origSubRow}${mappingSubRow}`;
+}
+
+// ── 거래 입력 ──────────────────────────────
+function val(id){ return document.getElementById(id).value.trim(); }
+function numVal(id){ return Number(document.getElementById(id).value); }
+
+function showRespModal(label, data, isErr){
+  const title = document.getElementById('resp-title');
+  title.textContent = isErr ? `❌ ${label} 실패` : `✅ ${label} 성공`;
+  title.className = `title ${isErr ? 'err' : 'ok'}`;
+  document.getElementById('resp-body').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('resp-overlay').classList.add('open');
+}
+function closeRespModal(e){
+  if(e && e.target !== document.getElementById('resp-overlay')) return;
+  document.getElementById('resp-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.getElementById('resp-overlay').classList.remove('open'); });
+
+async function doEarn(){
+  const body = {walletId:val('earn-walletId'),orderNo:val('earn-orderNo'),earnType:val('earn-earnType'),
+    amount:numVal('earn-amount')};
+  const r = await fetch('/api/point/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  showRespModal('포인트 적립', d, !r.ok);
+  if(r.ok && selectedWallet?.walletId===body.walletId) loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
+}
+
+async function doEarnCancel(){
+  const body = {walletId:val('earnCancel-walletId'),earnId:val('earnCancel-earnId')};
+  const r = await fetch('/api/point/earn/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  showRespModal('적립 취소', d, !r.ok);
+  if(r.ok && selectedWallet?.walletId===body.walletId) loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
+}
+
+async function doUse(){
+  const body = {walletId:val('use-walletId'),orderNo:val('use-orderNo'),amount:numVal('use-amount')};
+  const r = await fetch('/api/point/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  showRespModal('포인트 사용', d, !r.ok);
+  if(r.ok && selectedWallet?.walletId===body.walletId) loadUsageHistory(null, document.querySelector('#pane-use .fbtn.active'),'use');
+}
+
+async function doUseCancel(){
+  const _amt = document.getElementById('useCancel-cancelAmount').value.trim();
+  const body = {walletId:val('useCancel-walletId'),originalUsageId:val('useCancel-originalUsageId'),
+    cancelAmount: _amt ? Number(_amt) : null,cancelType:val('useCancel-cancelType')};
+  const r = await fetch('/api/point/use/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  showRespModal('사용 취소', d, !r.ok);
+  if(r.ok && selectedWallet?.walletId===body.walletId) loadUsageHistory(null, document.querySelector('#pane-cancel .fbtn.active'),'cancel');
+}
+
+// ── 초기화 ────────────────────────────────
+loadPolicies();
+loadAllWallets();
+</script>
+</body>
+</html>

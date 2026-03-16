@@ -1,8 +1,8 @@
 package io.github.bananachocohaim.pointassignment2603.api.point.dto;
 
 import io.github.bananachocohaim.pointassignment2603.domain.point.entity.EarnType;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -20,8 +20,7 @@ public record PointEarnRequest(
     @NotNull(message = "amount는 필수 입니다.")
     @Positive(message = "amount는 양수여야 합니다.")
     @Min(value = 1, message = "amount는 최소 1원 이상이어야 합니다.")
-    @Max(value = 100000, message = "amount는 최대 100000원 이하여야 합니다.")
-    Long amount,            //적립 금액
+    Long amount,            //적립 금액 (최대 금액은 정책 테이블 MAX_EARN_AMOUNT_PER_TX 기준)
 
     @Min(value = 1, message = "expiryDays는 최소 1일 이상이어야 합니다.")
     @Max(value = 1825, message = "expiryDays는 최대 5년(1825일) 이하여야 합니다.")

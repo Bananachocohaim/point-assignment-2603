@@ -5,8 +5,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnCancelRequest;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnCancelResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnRequest;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnResultResponse;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageCancelRequest;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageCancelResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageRequest;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageResultResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageResultResponse.UsageEarnDetail;
@@ -17,6 +21,8 @@ import io.github.bananachocohaim.pointassignment2603.common.component.IdGenerato
 import io.github.bananachocohaim.pointassignment2603.domain.point.entity.UsageType;
 import io.github.bananachocohaim.pointassignment2603.domain.point.entity.UserPointWallet;
 import io.github.bananachocohaim.pointassignment2603.domain.point.service.PointDomainService;
+import io.github.bananachocohaim.pointassignment2603.domain.point.service.PointDomainService.CancelEarnResult;
+import io.github.bananachocohaim.pointassignment2603.domain.point.service.PointDomainService.CancelPointResult;
 import io.github.bananachocohaim.pointassignment2603.domain.point.service.PointDomainService.EarnPointResult;
 import io.github.bananachocohaim.pointassignment2603.domain.point.service.PointDomainService.UsePointResult;
 import lombok.RequiredArgsConstructor;
@@ -61,10 +67,52 @@ public class PointApiService {
         //포인트 적립 처리
         EarnPointResult result = pointDomainService.earnPoint(
             requestDto.walletId(), earnId, requestDto.orderNo(), requestDto.earnType(),
-            requestDto.amount(), expirationDate, requestDto.originalEarnId());
+            requestDto.amount(), expiryDays, expirationDate, requestDto.originalEarnId());
 
         return PointEarnResultResponse.of(
             requestDto.walletId(), earnId, requestDto.amount(), result.balance(), result.expirationDate());
+    }
+
+    /**
+     * 포인트 적립 취소
+     * 적립한 금액중 일부가 사용된 경우라면 적립 취소 될 수 없다
+     */
+    public PointEarnCancelResponse cancelEarn(PointEarnCancelRequest requestDto) {
+        CancelEarnResult result = pointDomainService.cancelEarn(requestDto.walletId(), requestDto.earnId());
+        return PointEarnCancelResponse.of(
+            requestDto.walletId(), requestDto.earnId(), result.cancelledAmount());
+    }
+
+    /**
+     * 포인트 사용 취소
+     */
+    public PointUsageCancelResponse cancelPoint(PointUsageCancelRequest requestDto) {
+        // 취소 ID 채번
+        String cancelUsageId = idGenerator.getPointCancelId();
+
+        UsageType cancelType = UsageType.valueOf(requestDto.cancelType());
+
+        // FULL_CANCEL 시 금액 참조하지 않음 (도메인에서 자동 계산)
+        long cancelAmountValue = requestDto.cancelAmount() != null ? requestDto.cancelAmount() : 0L;
+
+        CancelPointResult result = pointDomainService.cancelPoint(
+            requestDto.walletId(),
+            cancelUsageId,
+            requestDto.originalUsageId(),
+            cancelType,
+            cancelAmountValue
+        );
+
+        return PointUsageCancelResponse.of(
+            requestDto.walletId(),
+            cancelUsageId,
+            requestDto.originalUsageId(),
+            result.orderNo(),
+            result.cancelledAmount(),
+            result.remainingUsageAmount(),
+            result.balance(),
+            cancelType
+        );
     }
 
     /**

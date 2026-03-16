@@ -24,9 +24,10 @@ public class PointEarnRecord {
     private PointEarnRecordId id;
 
     private String orderNo;
-    private LocalDate expirationDate;
     private long originalAmount;
     private long remainingAmount;
+    private int expiryDays;
+    private LocalDate expirationDate;
 
     @Enumerated(EnumType.STRING)
     private EarnType earnType;

@@ -16,6 +16,18 @@ public enum ErrorCode {
     BALANCE_LIMIT_EXCEEDED(400, "P003", "보유 한도를 초과합니다."),
     DUPLICATE_EARN_RECORD(409, "P004", "이미 존재하는 적립 건입니다."),
     DUPLICATE_USAGE_RECORD(409, "P005", "이미 존재하는 사용 건입니다."),
+    EARN_NOT_FOUND(404, "P006", "적립 이력을 찾을 수 없습니다."),
+    USAGE_NOT_FOUND(404, "P007", "사용 이력을 찾을 수 없습니다."),
+    USAGE_ALREADY_CANCELLED(400, "P008", "이미 전체 취소된 거래입니다."),
+    FULL_CANCEL_NOT_ALLOWED(400, "P009", "부분 취소 이력이 있어 전체 취소가 불가합니다."),
+    CANCEL_AMOUNT_EXCEEDED(400, "P010", "취소 금액이 취소 가능 잔액을 초과합니다."),
+    EARN_RECORD_RESTORE_FAILED(500, "P011", "적립 잔액 환급 처리에 실패했습니다. 동시 요청으로 인한 잔액 초과가 의심됩니다."),
+    EARN_ALREADY_CANCELLED(400, "P012", "이미 취소된 적립 건입니다."),
+    EARN_PARTIALLY_USED(400, "P013", "적립 금액 중 일부가 사용되어 적립 취소가 불가합니다."),
+    POLICY_NOT_FOUND(404, "P014", "정책 정보를 찾을 수 없습니다."),
+    EARN_AMOUNT_EXCEEDED(400, "P015", "1회 최대 적립 가능 금액을 초과합니다."),
+    WALLET_LIMIT_UPDATE_NOT_ALLOWED(400, "P016", "FREE 타입 지갑만 보유 한도를 변경할 수 있습니다."),
+    CANCEL_AMOUNT_REQUIRED(400, "P017", "부분 취소 시 취소 금액은 필수이며 1원 이상이어야 합니다."),
     ;
 
     private final int status;

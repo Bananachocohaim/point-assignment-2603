@@ -16,23 +16,24 @@ import io.github.bananachocohaim.pointassignment2603.domain.point.entity.PointEa
 public interface PointEarnRecordRepository extends JpaRepository<PointEarnRecord, PointEarnRecordId> {
 
     /**
-     * 적립 원장 INSERT 전용. 중복키 시 DB 제약 위반 → DataIntegrityViolationException.
+     * 적립 원장 INSERT 전용. 중복키 시 DB 제약 위반 -> DataIntegrityViolationException.
      */
     @Modifying(clearAutomatically = true)
     @Query(value = """
         INSERT INTO point_earn_record
-          (wallet_id, earn_id, created_date, order_no, expiration_date, original_amount, remaining_amount, earn_type, earn_status, original_earn_id)
+          (wallet_id, earn_id, created_date, order_no, original_amount, remaining_amount, expiry_days, expiration_date, earn_type, earn_status, original_earn_id)
         VALUES
-          (:walletId, :earnId, :createdDate, :orderNo, :expirationDate, :originalAmount, :remainingAmount, :earnType, :earnStatus, :originalEarnId)
+          (:walletId, :earnId, :createdDate, :orderNo, :originalAmount, :remainingAmount, :expiryDays, :expirationDate, :earnType, :earnStatus, :originalEarnId)
         """, nativeQuery = true)
     void insert(
         @Param("walletId") String walletId,
         @Param("earnId") String earnId,
         @Param("createdDate") LocalDate createdDate,
         @Param("orderNo") String orderNo,
-        @Param("expirationDate") LocalDate expirationDate,
         @Param("originalAmount") long originalAmount,
         @Param("remainingAmount") long remainingAmount,
+        @Param("expiryDays") int expiryDays,
+        @Param("expirationDate") LocalDate expirationDate,
         @Param("earnType") String earnType,
         @Param("earnStatus") String earnStatus,
         @Param("originalEarnId") String originalEarnId
@@ -74,6 +75,10 @@ public interface PointEarnRecordRepository extends JpaRepository<PointEarnRecord
               FROM use_point_target_records 
               WHERE prev_cumulative_sum < :amount
           )
+        ORDER BY 
+            CASE WHEN earn_type = 'MANUAL' THEN 0 ELSE 1 END ASC,
+            expiration_date ASC,
+            created_date ASC
         FOR UPDATE
          -- 정합성 유지를 위해 락
     """, nativeQuery = true)
@@ -90,7 +95,7 @@ public interface PointEarnRecordRepository extends JpaRepository<PointEarnRecord
     @Query(value = """
         UPDATE point_earn_record
         SET remaining_amount = remaining_amount - :useAmount,
-            earn_status = CASE WHEN (remaining_amount - :useAmount) = 0 THEN 'EXPIRED' ELSE earn_status END
+            updated_at = CURRENT_TIMESTAMP
         WHERE wallet_id = :walletId
           AND earn_id = :earnId
           AND created_date = :createdDate
@@ -104,12 +109,52 @@ public interface PointEarnRecordRepository extends JpaRepository<PointEarnRecord
     );
 
     /**
+     * 취소로 인한 ACTIVE 적립 건 잔액 환급.
+     * EXPIRED 건은 호출 전에 별도 RE_EARN 적립으로 처리한다.
+     * 방어코딩: 동시성 고려 - 환급 후 remaining_amount가 original_amount를 초과하지 않도록 WHERE 조건에서 제한.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE point_earn_record
+        SET remaining_amount = remaining_amount + :restoreAmount,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE wallet_id = :walletId
+          AND earn_id = :earnId
+          AND created_date = :createdDate
+          AND (remaining_amount + :restoreAmount) <= original_amount
+        """, nativeQuery = true)
+    int pointEarnRecordRestoreBalance(
+        @Param("walletId") String walletId,
+        @Param("earnId") String earnId,
+        @Param("createdDate") LocalDate createdDate,
+        @Param("restoreAmount") long restoreAmount
+    );
+
+    /**
      * 이미 만료된 ACTIVE 적립 건 조회 (잔액 차감,만료 처리용)
      */
     List<PointEarnRecord> findById_WalletIdAndEarnStatusAndExpirationDateLessThanEqual(
         String walletId,
         EarnStatus earnStatus,
         LocalDate expirationDate
+    );
+
+    /**
+     * 만료일이 지난 ACTIVE 적립 건을 EXPIRED 상태로 일괄 변경하고 잔액을 0으로 처리.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE point_earn_record
+        SET earn_status = 'EXPIRED',
+            remaining_amount = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE wallet_id = :walletId
+          AND earn_status = 'ACTIVE'
+          AND expiration_date <= :today
+        """, nativeQuery = true)
+    int expireEarnRecords(
+        @Param("walletId") String walletId,
+        @Param("today") LocalDate today
     );
 
     /**
@@ -137,4 +182,62 @@ public interface PointEarnRecordRepository extends JpaRepository<PointEarnRecord
         LocalDate getExpirationDate();
         long getTotalAmount();
     }
+
+    /**
+     * 관리용 - earnId 목록으로 적립 원장 배치 조회 (매핑 상세 조회용)
+     */
+    @Query("SELECT p FROM PointEarnRecord p WHERE p.id.walletId = :walletId AND p.id.earnId IN :earnIds")
+    List<PointEarnRecord> findByWalletIdAndEarnIdIn(
+        @Param("walletId") String walletId,
+        @Param("earnIds") List<String> earnIds
+    );
+
+    /**
+     * 관리용 - 지갑의 전체 적립 이력 조회 (earnStatus 없으면 전체 반환)
+     * 정렬: MANUAL 유형 최우선, 이후 만료일 오름차순 (실제 차감 순서 반영)
+     */
+    @Query(value = """
+        SELECT * FROM point_earn_record
+        WHERE wallet_id = :walletId
+          AND (:earnStatus IS NULL OR earn_status = :earnStatus)
+        ORDER BY
+          CASE WHEN earn_type = 'MANUAL' THEN 0 ELSE 1 END ASC,
+          expiration_date ASC,
+          earn_id ASC
+        """, nativeQuery = true)
+    List<PointEarnRecord> findAllByWalletIdForAdmin(
+        @Param("walletId") String walletId,
+        @Param("earnStatus") String earnStatus
+    );
+
+    /**
+     * walletId + earnId로 적립 건 단건 조회 (created_date 없이 조회).
+     */
+    @Query("SELECT p FROM PointEarnRecord p WHERE p.id.walletId = :walletId AND p.id.earnId = :earnId")
+    Optional<PointEarnRecord> findByWalletIdAndEarnId(
+        @Param("walletId") String walletId,
+        @Param("earnId") String earnId
+    );
+
+    /**
+     * 적립 취소 처리. earn_status -> CANCELLED, remaining_amount -> 0.
+     * 방어조건: ACTIVE 상태이고 remaining_amount == original_amount (미사용)인 건만 처리.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE point_earn_record
+        SET earn_status = 'CANCELLED',
+            remaining_amount = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE wallet_id = :walletId
+          AND earn_id = :earnId
+          AND created_date = :createdDate
+          AND earn_status IN ('ACTIVE', 'RE_EARN')
+          AND remaining_amount = original_amount
+        """, nativeQuery = true)
+    int cancelEarnRecord(
+        @Param("walletId") String walletId,
+        @Param("earnId") String earnId,
+        @Param("createdDate") LocalDate createdDate
+    );
 }

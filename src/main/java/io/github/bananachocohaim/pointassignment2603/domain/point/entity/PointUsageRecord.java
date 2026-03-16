@@ -18,7 +18,7 @@ public class PointUsageRecord {
     private PointUsageRecordId id;
 
     private String orderNo;
-    private long totalAmount;
+    private long usedAmount;
     private String originalUsageId;
 
     @Enumerated(EnumType.STRING)

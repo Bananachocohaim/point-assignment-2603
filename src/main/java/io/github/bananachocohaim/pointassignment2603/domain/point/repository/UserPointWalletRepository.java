@@ -50,13 +50,30 @@ public interface UserPointWalletRepository extends JpaRepository<UserPointWallet
     @Modifying(clearAutomatically = true)
     @Query(value = """
         UPDATE user_point_wallet
-        SET balance = balance - :amount
+        SET balance = balance - :amount,
+            updated_at = CURRENT_TIMESTAMP
         WHERE wallet_id = :walletId
           AND balance >= :amount
         """, nativeQuery = true)
     int userPointWalletWithdrawBalance(
         @Param("walletId") String walletId,
         @Param("amount") long amount
+    );
+
+    /**
+     * 지갑별 최대 보유 한도 변경
+     * @return 업데이트된 행 수 (1: 성공, 0: 지갑 없음)
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE user_point_wallet
+        SET max_balance_limit = :maxBalanceLimit,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE wallet_id = :walletId
+        """, nativeQuery = true)
+    int updateMaxBalanceLimit(
+        @Param("walletId") String walletId,
+        @Param("maxBalanceLimit") long maxBalanceLimit
     );
 
     /**

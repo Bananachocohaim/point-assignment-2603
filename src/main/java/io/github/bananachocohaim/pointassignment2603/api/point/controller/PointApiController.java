@@ -6,8 +6,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnCancelRequest;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnCancelResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnRequest;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointEarnResultResponse;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageCancelRequest;
+import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageCancelResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageRequest;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.PointUsageResultResponse;
 import io.github.bananachocohaim.pointassignment2603.api.point.dto.UserPointWalletInquiryRequest;
@@ -60,6 +64,28 @@ public class PointApiController {
         PointUsageResultResponse res = pointApiService.usePoint(requestDto);
 
         log.info("PointUsageResultResponse: {}", res);
+        return ResponseEntity.ok(res);
+    }
+
+    //적립 취소 API
+    @PostMapping("/api/point/earn/cancel")
+    public ResponseEntity<PointEarnCancelResponse> cancelEarn(@Valid @RequestBody PointEarnCancelRequest requestDto) {
+        log.info("PointEarnCancelRequest: walletId={}, earnId={}", requestDto.walletId(), requestDto.earnId());
+
+        PointEarnCancelResponse res = pointApiService.cancelEarn(requestDto);
+
+        log.info("PointEarnCancelResponse: {}", res);
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/api/point/use/cancel")
+    public ResponseEntity<PointUsageCancelResponse> cancelUse(@Valid @RequestBody PointUsageCancelRequest requestDto) {
+        log.info("PointUsageCancelRequest: walletId={}, originalUsageId={}, cancelAmount={}, cancelType={}",
+            requestDto.walletId(), requestDto.originalUsageId(), requestDto.cancelAmount(), requestDto.cancelType());
+
+        PointUsageCancelResponse res = pointApiService.cancelPoint(requestDto);
+
+        log.info("PointUsageCancelResponse: {}", res);
         return ResponseEntity.ok(res);
     }
 }

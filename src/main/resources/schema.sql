@@ -4,7 +4,7 @@
 -- 2. ID FORMAT    : {PREFIX}-{TsID} (예: WLT-01JK2...)
 -- 3. EARN_TYPE    : MANUAL(수기) ORDER(주문적립), EVENT(이벤트), RE_EARN(취소재적립)
 -- 4. EARN_STATUS  : ACTIVE(가용), EXPIRED(만료), CANCELLED(적립취소)
--- 5. USAGE_TYPE   : USE(사용), CANCEL(취소), EXPIRE(만료차감)
+-- 5. USAGE_TYPE   : USE(사용), PARTIAL_CANCEL(부분취소), FULL_CANCEL(전체취소), EXPIRE(만료차감)
 -- 6. USAGE_STATUS : COMPLETED(완료), PARTIAL(부분취소), FULL(전체취소)
 -- 7. WALLET_TYPE  : FREE(무료),  CASH(충전)
 -- ==========================================================
@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS point_earn_record (
     order_no               VARCHAR(50)          COMMENT '연계 주문번호',
     original_amount        BIGINT      NOT NULL COMMENT '최초 적립 금액',
     remaining_amount       BIGINT      NOT NULL COMMENT '현재 사용 가능 잔액',
-    expiration_date        DATE        NOT NULL COMMENT '만료일',
+    expiry_days            INT         NOT NULL DEFAULT 365 COMMENT '만료 기준 일수 (적립일 기준 만료까지 일수)',
+    expiration_date        DATE        NOT NULL COMMENT '만료일 (created_date + expiry_days)',
     earn_status            VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '적립 상태 (ACTIVE, EXPIRED, CANCELLED)',
     original_earn_id       VARCHAR(50)          DEFAULT NULL COMMENT '만료 후 재적립 시 원본 적립 ID 참조',
     
@@ -61,9 +62,9 @@ CREATE TABLE IF NOT EXISTS point_usage_record (
     created_date           DATE        NOT NULL COMMENT '처리 일자 (파티션 키)',
     usage_type             VARCHAR(20) NOT NULL COMMENT '행위 타입 (USE, CANCEL, EXPIRE)',
     order_no               VARCHAR(50) NOT NULL COMMENT '주문번호 (Search Key)',
-    total_amount           BIGINT      NOT NULL COMMENT '총 처리 금액',
-    original_usage_id      VARCHAR(50)          DEFAULT NULL COMMENT '취소 시 원본 사용 건의 usage_id 참조',
-    usage_status           VARCHAR(20)          DEFAULT 'COMPLETED' COMMENT '거래 상태 (COMPLETED, PARTIAL, FULL)',
+    used_amount            BIGINT      NOT NULL COMMENT '사용 금액 (취소 시 취소 금액)',
+    original_usage_id      VARCHAR(50)          DEFAULT NULL COMMENT '취소 시 원거래 usage_id 참조',
+    usage_status           VARCHAR(20)          DEFAULT 'COMPLETED' COMMENT '거래 상태 (COMPLETED: 정상완료, PARTIAL_CANCEL: 부분취소됨, FULL_CANCEL: 전체취소됨)',
     
     -- 감사(Audit) 컬럼
     created_by             VARCHAR(50) NOT NULL DEFAULT 'SYSTEM' COMMENT '생성자 ID',
@@ -93,3 +94,23 @@ CREATE TABLE IF NOT EXISTS point_usage_earn_mapping (
     
     PRIMARY KEY (wallet_id, usage_id, usage_created_date, earn_id)
 ) COMMENT '사용 건과 적립 건의 매핑 상세 이력';
+
+
+-- 5. 포인트 정책 (KEY-VALUE 구조)
+CREATE TABLE IF NOT EXISTS point_policy (
+    policy_key   VARCHAR(100) NOT NULL COMMENT '정책 키 (고유 식별자)',
+    policy_value VARCHAR(500) NOT NULL COMMENT '정책 값',
+    description  VARCHAR(500)         COMMENT '정책 설명',
+    updated_by   VARCHAR(50)  NOT NULL DEFAULT 'SYSTEM' COMMENT '수정자',
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '수정 일시',
+
+    PRIMARY KEY (policy_key)
+) COMMENT '포인트 정책 테이블';
+
+
+-- 6. ID 생성용 DB 시퀀스 (0000~9999 사이클, 종류별 독립)
+CREATE SEQUENCE IF NOT EXISTS seq_wlt START WITH 0 INCREMENT BY 1 MINVALUE 0 MAXVALUE 9999 CYCLE;
+CREATE SEQUENCE IF NOT EXISTS seq_ern START WITH 0 INCREMENT BY 1 MINVALUE 0 MAXVALUE 9999 CYCLE;
+CREATE SEQUENCE IF NOT EXISTS seq_usg START WITH 0 INCREMENT BY 1 MINVALUE 0 MAXVALUE 9999 CYCLE;
+CREATE SEQUENCE IF NOT EXISTS seq_cnc START WITH 0 INCREMENT BY 1 MINVALUE 0 MAXVALUE 9999 CYCLE;
+CREATE SEQUENCE IF NOT EXISTS seq_pcn START WITH 0 INCREMENT BY 1 MINVALUE 0 MAXVALUE 9999 CYCLE;
