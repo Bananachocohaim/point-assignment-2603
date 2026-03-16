@@ -6,6 +6,5 @@ package io.github.bananachocohaim.pointassignment2603.domain.point.entity;
 public enum UsageType {
     USE,            // 사용
     PARTIAL_CANCEL, // 부분 취소
-    FULL_CANCEL,    // 전체 취소
-    EXPIRE          // 만료 차감
+    FULL_CANCEL     // 전체 취소
 }

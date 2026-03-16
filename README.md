@@ -116,7 +116,6 @@ point_policy               정책 테이블 (KEY-VALUE)
 | **USAGE_TYPE** | `USE` | 포인트 사용 |
 | | `PARTIAL_CANCEL` | 부분 취소 |
 | | `FULL_CANCEL` | 전체 취소 |
-| | `EXPIRE` | 만료 차감 (내부 처리용) |
 | **USAGE_STATUS** | `COMPLETED` | 정상 완료 |
 | | `PARTIAL_CANCEL` | 부분 취소됨 |
 | | `FULL_CANCEL` | 전체 취소됨 |

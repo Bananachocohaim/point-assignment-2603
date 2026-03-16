@@ -4,7 +4,7 @@
 -- 2. ID FORMAT    : {PREFIX}-{TsID} (예: WLT-01JK2...)
 -- 3. EARN_TYPE    : MANUAL(수기) ORDER(주문적립), EVENT(이벤트), RE_EARN(취소재적립)
 -- 4. EARN_STATUS  : ACTIVE(가용), EXPIRED(만료), CANCELLED(적립취소)
--- 5. USAGE_TYPE   : USE(사용), PARTIAL_CANCEL(부분취소), FULL_CANCEL(전체취소), EXPIRE(만료차감)
+-- 5. USAGE_TYPE   : USE(사용), PARTIAL_CANCEL(부분취소), FULL_CANCEL(전체취소)
 -- 6. USAGE_STATUS : COMPLETED(완료), PARTIAL(부분취소), FULL(전체취소)
 -- 7. WALLET_TYPE  : FREE(무료),  CASH(충전)
 -- ==========================================================
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS point_usage_record (
     wallet_id   VARCHAR(50) NOT NULL COMMENT '지갑 식별자 (FK: WLT-...)',
     usage_id               VARCHAR(50) NOT NULL COMMENT '사용/취소 식별자 (USG-...)',
     created_date           DATE        NOT NULL COMMENT '처리 일자 (파티션 키)',
-    usage_type             VARCHAR(20) NOT NULL COMMENT '행위 타입 (USE, CANCEL, EXPIRE)',
+    usage_type             VARCHAR(20) NOT NULL COMMENT '행위 타입 (USE, PARTIAL_CANCEL, FULL_CANCEL)',
     order_no               VARCHAR(50) NOT NULL COMMENT '주문번호 (Search Key)',
     used_amount            BIGINT      NOT NULL COMMENT '사용 금액 (취소 시 취소 금액)',
     original_usage_id      VARCHAR(50)          DEFAULT NULL COMMENT '취소 시 원거래 usage_id 참조',

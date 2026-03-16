@@ -305,12 +305,12 @@ function earnBadge(s){
   return `<span class="badge ${m[s]||''}">${s||''}</span>`;
 }
 function usageBadge(s){
-  const m={COMPLETED:'b-completed',PARTIAL_CANCEL:'b-partial',FULL_CANCEL:'b-full',USE:'b-use',EXPIRE:'b-expire'};
-  const label={COMPLETED:'완료',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',USE:'사용',EXPIRE:'만료차감',PARTIAL:'부분취소됨',FULL:'전체취소됨'};
+  const m={COMPLETED:'b-completed',PARTIAL_CANCEL:'b-partial',FULL_CANCEL:'b-full',USE:'b-use'};
+  const label={COMPLETED:'완료',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',USE:'사용',PARTIAL:'부분취소됨',FULL:'전체취소됨'};
   return `<span class="badge ${m[s]||''}">${label[s]||s||''}</span>`;
 }
 function typeLabel(t){
-  const m={USE:'사용',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',EXPIRE:'만료차감',
+  const m={USE:'사용',PARTIAL_CANCEL:'부분취소',FULL_CANCEL:'전체취소',
     ORDER:'주문',MANUAL:'수기',EVENT:'이벤트',RE_EARN:'재적립'};
   return m[t]||t||'-';
 }
