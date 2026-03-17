@@ -1,7 +1,7 @@
 # Point Assignment 2603
 
 Spring Boot 기반 포인트 관리 시스템.  
-포인트 적립·사용·취소·만료 처리와 어드민 관리 화면을 포함합니다.
+포인트 조회, 적립, 적립 취소, 사용, 사용 취소, 개인별 보유한도 변경, 만료 처리와 어드민 관리 화면을 포함합니다.
 
 ---
 
@@ -15,7 +15,7 @@ Spring Boot 기반 포인트 관리 시스템.
 | Database | H2 (메모리 모드, MySQL 호환) |
 | Build | Gradle |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
-| 기타 | Lombok, DevTools |
+| 기타 | Lombok |
 
 ---
 
@@ -25,6 +25,10 @@ Spring Boot 기반 포인트 관리 시스템.
 
 ```bash
 ./gradlew bootRun
+```
+
+```bash
+gradlew.bat bootRun
 ```
 
 > Windows 터미널에서 한글 로그를 올바르게 출력하려면 먼저 `chcp 65001`을 실행하세요.
@@ -216,21 +220,12 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 > - `cancelType`: `PARTIAL_CANCEL` | `FULL_CANCEL`  
 > - `FULL_CANCEL` 시 `cancelAmount` 생략 가능 (잔여 전액 자동 계산)  
 > - 부분 취소 이력이 있는 건은 전체 취소 불가  
-> - `PARTIAL_CANCEL` 시 `cancelAmount` 1원 이상 필수
+> - `PARTIAL_CANCEL` 시 `cancelAmount` 1원 이상 필수  
+> - 취소 ID 규칙: `FULL_CANCEL`은 `CNC-...`, `PARTIAL_CANCEL`은 `PCN-...`
 
 ---
 
 ### 어드민 API
-
-#### 지갑 관리 (`/api/admin/wallet`)
-
-| Method | Path | 설명 |
-|---|---|---|
-| `GET` | `/api/admin/wallet` | 전체 지갑 목록 조회 |
-| `GET` | `/api/admin/wallet/search?userId=` | userId로 지갑 목록 조회 |
-| `GET` | `/api/admin/wallet/{walletId}/earn-history` | 적립 이력 조회 (`?earnStatus=`) |
-| `GET` | `/api/admin/wallet/{walletId}/usage-history` | 사용/취소 이력 조회 (`?usageType=`) |
-| `PUT` | `/api/admin/wallet/{walletId}/max-balance` | 보유 한도 변경 (FREE 타입 전용) |
 
 #### 정책 관리 (`/api/admin/policy`)
 
@@ -265,6 +260,7 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 
 - **전체 취소(`FULL_CANCEL`)**: 부분 취소 이력이 없어야 함. 취소 금액 자동 계산(원거래 금액 - 기취소 금액).
 - **부분 취소(`PARTIAL_CANCEL`)**: 취소 금액 필수(1원 이상). 이미 취소된 금액 + 이번 취소 금액 ≤ 원거래 금액
+- 취소 ID는 타입별로 분리 채번: `CNC`(전체), `PCN`(부분)
 - 적립 원장 환급 시:
   - `ACTIVE` 건: 잔액 직접 복원
   - `EXPIRED` 건: 신규 `RE_EARN` 적립 생성 (정책 `RE_EARN_EXPIRY_DAYS` 기준으로 만료일 재계산)
@@ -284,15 +280,6 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 - 포인트 사용 시 차감 대상 적립 건 조회는 `FOR UPDATE`로 잠그고, 차감은 `remaining_amount >= useAmount` 조건으로 원자 업데이트합니다.
 - 취소 환급은 `(remaining_amount + restoreAmount) <= original_amount` 조건으로 원자 업데이트해 원금 초과를 방지합니다.
 - 지갑 차감은 `balance >= amount` 조건으로 원자 업데이트해 음수 잔액을 방지합니다.
-
-### 멱등성
-
-| 연산 | 멱등성 여부 | 비고 |
-|---|---|---|
-| 포인트 적립 | **조건부 멱등** | `earnId`(PK) 중복 시 `409 DUPLICATE_EARN_RECORD` 반환. 동일 `earnId`로 재호출해도 DB 변경 없음 |
-| 포인트 사용 | **조건부 멱등** | `usageId`(PK) 중복 시 `409 DUPLICATE_USAGE_RECORD` 반환. 동일 `usageId`로 재호출해도 DB 변경 없음 |
-| 사용 취소 | **비멱등** | 취소 ID는 매 호출마다 채번됨. 동일 원거래에 대해 중복 취소 방지는 취소 가능 잔액 체크로 제한 |
-| 적립 취소 | **조건부 멱등** | 이미 취소된 `earnId`에 재요청 시 `400 EARN_ALREADY_CANCELLED` 반환 |
 
 ### 정책 캐싱
 
@@ -359,13 +346,18 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 - 포함 케이스:
   - 230원 적립 10회 동시 호출
   - 230원 사용 10회 동시 호출
-  - 동일 원거래 사용취소 10회 동시 호출
+  - 동일 원거래 전체취소 10회 동시 호출 (성공 1건 보장)
+  - 동일 원거래 부분취소 115원 10회 동시 호출
   - 서로 다른 적립건 적립취소 10회 동시 호출
 
 ### 실행 방법
 
 ```bash
 ./gradlew test --tests "*PointConcurrencyIntegrityTest" --info
+```
+
+```bash
+gradlew.bat test --tests "*PointConcurrencyIntegrityTest" --info
 ```
 
 - 테스트는 `@SpringBootTest`로 애플리케이션 컨텍스트를 직접 띄워 수행합니다.
@@ -379,4 +371,3 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 | `build/test-logs/point-concurrency.log` | 동시성 테스트 상세 추적 로그 |
 | `build/test-results/test/TEST-io.github.bananachocohaim.pointassignment2603.PointConcurrencyIntegrityTest.xml` | JUnit XML 결과 |
 
-> `build/test-logs/`는 `.gitignore`에 포함되어 Git에 커밋되지 않습니다.

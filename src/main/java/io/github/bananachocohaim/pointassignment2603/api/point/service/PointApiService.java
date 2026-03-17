@@ -87,10 +87,11 @@ public class PointApiService {
      * 포인트 사용 취소
      */
     public PointUsageCancelResponse cancelPoint(PointUsageCancelRequest requestDto) {
-        // 취소 ID 채번
-        String cancelUsageId = idGenerator.getPointCancelId();
-
         UsageType cancelType = UsageType.valueOf(requestDto.cancelType());
+        // 취소 ID 채번: 전체취소(CNC), 부분취소(PCN)
+        String cancelUsageId = (cancelType == UsageType.PARTIAL_CANCEL)
+            ? idGenerator.getPointPartialCancelId()
+            : idGenerator.getPointCancelId();
 
         // FULL_CANCEL 시 금액 참조하지 않음 (도메인에서 자동 계산)
         long cancelAmountValue = requestDto.cancelAmount() != null ? requestDto.cancelAmount() : 0L;
