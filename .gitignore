@@ -42,3 +42,6 @@ out/
 
 # 히스토리 폴더 무시
 .history
+
+# Test logs
+build/test-logs/

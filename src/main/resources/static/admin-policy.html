@@ -80,38 +80,28 @@ input:focus,select:focus{outline:none;border-color:#333}
 .neg{color:#c62828;font-weight:600}
 
 /* 지갑 선택 패널 */
-#wallet-detail{display:none;border:1px solid #d9d9d9;border-radius:4px;padding:16px;margin-top:12px;background:#fafeff}
-.wallet-summary{display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee}
-.wallet-summary .item{font-size:12px;color:#555}.wallet-summary .item strong{color:#111}
-
-/* 거래 폼 */
-.op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:8px}
-.op-card{border:1px solid #e0e0e0;border-radius:4px;padding:14px}
-.op-card h3{font-size:13px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee}
-.op-card .fields{display:flex;flex-direction:column;gap:6px}
-.op-card label{font-size:11px;color:#666;display:block;margin-bottom:1px}
-.op-card input,.op-card select{width:100%}
-.op-card .act{margin-top:8px;text-align:right}
+#wallet-detail{display:none;border:1px solid #d9d9d9;border-radius:6px;padding:18px;margin-top:12px;background:#fafeff}
+.wallet-summary{
+  display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+  margin-bottom:14px;
+  padding:14px 14px;
+  border:1px solid #e0e0e0;
+  border-radius:6px;
+  background:#ffffff;
+  box-shadow:0 6px 20px rgba(0,0,0,.06);
+}
+.wallet-summary .item{font-size:13px;color:#444}
+.wallet-summary .item strong{color:#111;font-size:16px}
+.wallet-summary .item strong#walletId,
+.wallet-summary .item strong#walletType{letter-spacing:.2px}
+.wallet-summary .item:first-child{flex-basis:100%}
+.wallet-summary .item:first-child strong{font-size:18px}
 
 /* 토스트 */
 #toast{position:fixed;bottom:20px;right:20px;padding:9px 14px;border-radius:4px;font-size:12px;opacity:0;transform:translateY(4px);transition:all .22s;pointer-events:none;z-index:9999}
 #toast.show{opacity:1;transform:translateY(0)}
 #toast.ok{background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32}
 #toast.err{background:#fce4ec;border:1px solid #f48fb1;color:#880e4f}
-
-/* 응답 팝업 */
-#resp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
-#resp-overlay.open{display:flex}
-#resp-modal{background:#fff;border-radius:6px;width:560px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.18)}
-#resp-modal .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee}
-#resp-modal .modal-hd .title{font-size:13px;font-weight:700}
-#resp-modal .modal-hd .title.ok{color:#2e7d32}
-#resp-modal .modal-hd .title.err{color:#c62828}
-#resp-modal .modal-hd button{background:none;border:none;font-size:18px;line-height:1;color:#888;cursor:pointer;padding:0 4px}
-#resp-modal .modal-hd button:hover{color:#111}
-#resp-modal .modal-body{padding:14px 16px;overflow-y:auto;flex:1}
-#resp-modal pre{font-family:'Consolas',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;margin:0}
-#resp-modal .modal-ft{padding:10px 16px;border-top:1px solid #eee;text-align:right}
 
 .empty{text-align:center;color:#aaa;padding:20px;font-size:12px}
 .loading{color:#bbb;font-size:12px;padding:10px}
@@ -203,91 +193,8 @@ code{font-family:'Consolas',monospace;font-size:11px;background:#f5f5f5;padding:
   </div>
 </section>
 
-<hr class="sep"/>
-
-<!-- ── 거래 입력 ── -->
-<section>
-  <h2>거래 입력</h2>
-  <div class="op-grid">
-
-    <!-- 적립 -->
-    <div class="op-card">
-      <h3>📥 포인트 적립</h3>
-      <div class="fields">
-        <div><label>지갑 ID</label><input id="earn-walletId" placeholder="WLT-..."/></div>
-        <div><label>주문번호</label><input id="earn-orderNo" placeholder="ORD-001"/></div>
-        <div><label>적립 유형</label>
-          <select id="earn-earnType">
-            <option value="ORDER">ORDER (주문적립)</option>
-            <option value="MANUAL">MANUAL (수기적립)</option>
-            <option value="EVENT">EVENT (이벤트)</option>
-          </select>
-        </div>
-        <div><label>금액 (원)</label><input id="earn-amount" type="number" min="1" placeholder="10000"/></div>
-      </div>
-      <div class="act"><button class="btn btn-blue" onclick="doEarn()">적립</button></div>
-    </div>
-
-    <!-- 적립 취소 -->
-    <div class="op-card">
-      <h3>❌ 적립 취소</h3>
-      <div class="fields">
-        <div><label>지갑 ID</label><input id="earnCancel-walletId" placeholder="WLT-..."/></div>
-        <div><label>적립 ID</label><input id="earnCancel-earnId" placeholder="ERN-..."/></div>
-      </div>
-      <div class="act"><button class="btn btn-red" onclick="doEarnCancel()">적립 취소</button></div>
-    </div>
-
-    <!-- 사용 -->
-    <div class="op-card">
-      <h3>💳 포인트 사용</h3>
-      <div class="fields">
-        <div><label>지갑 ID</label><input id="use-walletId" placeholder="WLT-..."/></div>
-        <div><label>주문번호</label><input id="use-orderNo" placeholder="ORD-001"/></div>
-        <div><label>금액 (원)</label><input id="use-amount" type="number" min="1" placeholder="5000"/></div>
-      </div>
-      <div class="act"><button class="btn btn-blue" onclick="doUse()">사용</button></div>
-    </div>
-
-    <!-- 사용 취소 -->
-    <div class="op-card">
-      <h3>↩️ 사용 취소</h3>
-      <div class="fields">
-        <div><label>지갑 ID</label><input id="useCancel-walletId" placeholder="WLT-..."/></div>
-        <div><label>원거래 사용 ID</label><input id="useCancel-originalUsageId" placeholder="USG-..."/></div>
-        <div><label>취소 금액 (원)<span style="color:#aaa;font-size:10px"> (전체취소 시 생략 가능)</span></label><input id="useCancel-cancelAmount" type="number" min="1" placeholder="3000"/></div>
-        <div><label>취소 유형</label>
-          <select id="useCancel-cancelType">
-            <option value="PARTIAL_CANCEL">PARTIAL_CANCEL (부분취소)</option>
-            <option value="FULL_CANCEL">FULL_CANCEL (전체취소)</option>
-          </select>
-        </div>
-      </div>
-      <div class="act"><button class="btn btn-red" onclick="doUseCancel()">사용 취소</button></div>
-    </div>
-
-  </div>
-  <!-- 결과 -->
-</section>
-
 </div><!-- /page -->
 <div id="toast"></div>
-
-<!-- 응답 팝업 -->
-<div id="resp-overlay" onclick="closeRespModal(event)">
-  <div id="resp-modal">
-    <div class="modal-hd">
-      <span id="resp-title" class="title">응답</span>
-      <button onclick="closeRespModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <pre id="resp-body"></pre>
-    </div>
-    <div class="modal-ft">
-      <button class="btn btn-dark btn-xs" onclick="closeRespModal()">닫기</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ── 유틸 ──────────────────────────────────
@@ -359,6 +266,33 @@ async function savePolicy(e,k){
 // ── 지갑 조회 ──────────────────────────────
 let selectedWallet = null;
 
+// 선택된 지갑의 최신 정보로 요약/버튼 상태를 갱신한다.
+// (탭/필터 클릭으로 이력 재조회 시, 잔액/만료예정 정보가 변경될 수 있으므로 매번 동기화)
+async function refreshSelectedWalletSummary(){
+  if(!selectedWallet?.walletId) return;
+  try{
+    const wallets = await fetch('/api/admin/wallet').then(r=>r.json());
+    const latest = wallets.find(w => w.walletId === selectedWallet.walletId);
+    if(!latest) return;
+    // 선택 상태 유지
+    selectedWallet = latest;
+    // 요약 갱신
+    document.getElementById('ws-summary').innerHTML=`
+      <div class="item">ID: <strong>${latest.walletId}</strong></div>
+      <div class="item">유형: <strong>${latest.walletType}</strong></div>
+      <div class="item">잔액: <strong id="ws-balance">${fmt(latest.balance)}원</strong></div>
+      <div class="item">보유한도: <strong id="ws-mbl">${fmt(latest.maxBalanceLimit)}원</strong></div>
+      <div class="item">다음만료: <strong>${fd(latest.nextExpirationDate)}</strong></div>
+      <div class="item">만료예정: <strong>${latest.expiringAmount?fmt(latest.expiringAmount)+'원':'-'}</strong></div>`;
+    // FREE 타입만 보유한도 변경 가능
+    const isFree = latest.walletType === 'FREE';
+    document.getElementById('mbl-input').value = latest.maxBalanceLimit;
+    document.getElementById('mbl-input').disabled = !isFree;
+    const mblBtn = document.querySelector('[onclick="updateMaxBalance()"]');
+    if(mblBtn){ mblBtn.disabled = !isFree; mblBtn.title = isFree ? '' : 'FREE 타입만 변경 가능'; }
+  } catch {}
+}
+
 function renderWalletRows(data){
   if(!data.length){ document.getElementById('wallet-tbody').innerHTML='<tr><td colspan="7" class="empty">지갑 없음</td></tr>'; return; }
   document.getElementById('wallet-tbody').innerHTML = data.map(w=>`
@@ -417,10 +351,6 @@ function selectWallet(w){
   const mblBtn = document.querySelector('[onclick="updateMaxBalance()"]');
   if(mblBtn){ mblBtn.disabled = !isFree; mblBtn.title = isFree ? '' : 'FREE 타입만 변경 가능'; }
   document.getElementById('wallet-detail').style.display='block';
-  // 거래 폼에 지갑ID 자동 입력
-  ['earn-walletId','earnCancel-walletId','use-walletId','useCancel-walletId'].forEach(id=>{
-    document.getElementById(id).value = w.walletId;
-  });
   // 적립 이력 기본 로드
   loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
 }
@@ -450,6 +380,7 @@ function switchTab(name, btn){
   document.getElementById(`pane-${name}`).classList.add('active');
   btn.classList.add('active');
   if(!selectedWallet) return;
+  refreshSelectedWalletSummary();
   if(name==='earn')   loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
   if(name==='use')    loadUsageHistory(null, document.querySelector('#pane-use .fbtn.active'), 'use');
   if(name==='cancel') loadUsageHistory(null, document.querySelector('#pane-cancel .fbtn.active'), 'cancel');
@@ -458,6 +389,7 @@ function switchTab(name, btn){
 // ── 적립 이력 ──────────────────────────────
 async function loadEarnHistory(status, btn){
   if(!selectedWallet) return;
+  refreshSelectedWalletSummary();
   if(btn){ btn.closest('.filter-row').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
   const el = document.getElementById('earn-result');
   el.innerHTML='<div class="loading">로딩 중…</div>';
@@ -497,6 +429,7 @@ async function loadEarnHistory(status, btn){
 // ── 사용/취소 이력 ──────────────────────────
 async function loadUsageHistory(usageType, btn, mode){
   if(!selectedWallet) return;
+  refreshSelectedWalletSummary();
   if(btn){ btn.closest('.filter-row').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
   const isCancel = mode==='cancel';
   const elId = isCancel ? 'cancel-result' : 'use-result';
@@ -595,58 +528,6 @@ function renderUsageRow(r, isCancel){
   }
 
   return `<tr>${mainCols}</tr>${origSubRow}${mappingSubRow}`;
-}
-
-// ── 거래 입력 ──────────────────────────────
-function val(id){ return document.getElementById(id).value.trim(); }
-function numVal(id){ return Number(document.getElementById(id).value); }
-
-function showRespModal(label, data, isErr){
-  const title = document.getElementById('resp-title');
-  title.textContent = isErr ? `❌ ${label} 실패` : `✅ ${label} 성공`;
-  title.className = `title ${isErr ? 'err' : 'ok'}`;
-  document.getElementById('resp-body').textContent = JSON.stringify(data, null, 2);
-  document.getElementById('resp-overlay').classList.add('open');
-}
-function closeRespModal(e){
-  if(e && e.target !== document.getElementById('resp-overlay')) return;
-  document.getElementById('resp-overlay').classList.remove('open');
-}
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.getElementById('resp-overlay').classList.remove('open'); });
-
-async function doEarn(){
-  const body = {walletId:val('earn-walletId'),orderNo:val('earn-orderNo'),earnType:val('earn-earnType'),
-    amount:numVal('earn-amount')};
-  const r = await fetch('/api/point/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d = await r.json();
-  showRespModal('포인트 적립', d, !r.ok);
-  if(r.ok && selectedWallet?.walletId===body.walletId) loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
-}
-
-async function doEarnCancel(){
-  const body = {walletId:val('earnCancel-walletId'),earnId:val('earnCancel-earnId')};
-  const r = await fetch('/api/point/earn/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d = await r.json();
-  showRespModal('적립 취소', d, !r.ok);
-  if(r.ok && selectedWallet?.walletId===body.walletId) loadEarnHistory(null, document.querySelector('#pane-earn .fbtn.active'));
-}
-
-async function doUse(){
-  const body = {walletId:val('use-walletId'),orderNo:val('use-orderNo'),amount:numVal('use-amount')};
-  const r = await fetch('/api/point/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d = await r.json();
-  showRespModal('포인트 사용', d, !r.ok);
-  if(r.ok && selectedWallet?.walletId===body.walletId) loadUsageHistory(null, document.querySelector('#pane-use .fbtn.active'),'use');
-}
-
-async function doUseCancel(){
-  const _amt = document.getElementById('useCancel-cancelAmount').value.trim();
-  const body = {walletId:val('useCancel-walletId'),originalUsageId:val('useCancel-originalUsageId'),
-    cancelAmount: _amt ? Number(_amt) : null,cancelType:val('useCancel-cancelType')};
-  const r = await fetch('/api/point/use/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d = await r.json();
-  showRespModal('사용 취소', d, !r.ok);
-  if(r.ok && selectedWallet?.walletId===body.walletId) loadUsageHistory(null, document.querySelector('#pane-cancel .fbtn.active'),'cancel');
 }
 
 // ── 초기화 ────────────────────────────────

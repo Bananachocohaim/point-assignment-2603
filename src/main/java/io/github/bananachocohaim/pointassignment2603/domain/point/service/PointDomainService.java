@@ -108,14 +108,14 @@ public class PointDomainService {
         String originalEarnId
     ) {
         // 1. 지갑 조회
-        UserPointWallet wallet = userPointWalletRepository.findById(walletId)
+        UserPointWallet wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         // 2. 만료 갱신 (오늘 이전 만료건 차감 + 다음 만료 정보 갱신)
         ensureExpirationInfoUpToDate(List.of(wallet));
 
         // 3. 갱신 후 최신 지갑 재조회
-        wallet = userPointWalletRepository.findById(walletId)
+        wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         // 4. 1회 적립 금액 상한 체크 (정책)
@@ -125,7 +125,8 @@ public class PointDomainService {
         }
 
         // 5. 보유 한도 체크 (지갑 DB의 max_balance_limit 기준)
-        if (wallet.getBalance() + amount > wallet.getMax_balance_limit()) {
+        // 취소 후 재적립(RE_EARN)은 보유 한도 체크 예외
+        if (earnType != EarnType.RE_EARN && wallet.getBalance() + amount > wallet.getMax_balance_limit()) {
             throw new PointApiException(ErrorCode.BALANCE_LIMIT_EXCEEDED);
         }
 
@@ -157,14 +158,14 @@ public class PointDomainService {
     @Transactional
     public UsePointResult usePoint(String walletId, String usageId, String orderNo, long amount) {
         // 1. 지갑 조회
-        UserPointWallet wallet = userPointWalletRepository.findById(walletId)
+        UserPointWallet wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         // 2. 만료 갱신
         ensureExpirationInfoUpToDate(List.of(wallet));
 
         // 3. 갱신 후 최신 지갑 재조회
-        wallet = userPointWalletRepository.findById(walletId)
+        wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         // 4. 잔액 체크
@@ -245,7 +246,7 @@ public class PointDomainService {
         log.info("cancelEarn walletId: {}, earnId: {}", walletId, earnId);
 
         // 지갑 존재하는지 검증 (존재하지 않으면 예외)
-        UserPointWallet wallet = userPointWalletRepository.findById(walletId)
+        UserPointWallet wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         // 만료 정보 동기화
@@ -303,6 +304,13 @@ public class PointDomainService {
     ) {
         LocalDate createdDate = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
+
+        // 지갑 존재하는지 검증 (존재하지 않으면 예외)
+        UserPointWallet wallet = userPointWalletRepository.findByIdForUpdate(walletId)
+            .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
+
+        // 만료 정보 동기화
+        ensureExpirationInfoUpToDate(List.of(wallet));
 
         // 1. 원거래 이력 조회 
         PointUsageRecord original = pointUsageRecordRepository
@@ -396,11 +404,11 @@ public class PointDomainService {
             LocalDate targetEarnCreatedDate;
 
             if (earnRecord.getEarnStatus() == EarnStatus.EXPIRED || !earnRecord.getExpirationDate().isAfter(createdDate)) {
-                // 만료된 건은 RE_EARN 타입으로 신규 적립 (원 적립 건의 expiryDays 기준으로 만료일 재산정)
+                // 만료된 건은 RE_EARN 타입으로 신규 적립 (정책 기반 만료일수 적용)
                 targetEarnId = idGenerator.getPointEarnId();    //적립 ID 채번
                 targetEarnCreatedDate = createdDate;
                 
-                int reEarnExpiryDays = earnRecord.getExpiryDays();
+                int reEarnExpiryDays = Math.toIntExact(pointPolicyService.getLongValue(PolicyKey.RE_EARN_EXPIRY_DAYS));
                 
                 LocalDate reEarnExpirationDate = createdDate.plusDays(reEarnExpiryDays); //만료일 재산정
                 
@@ -450,7 +458,7 @@ public class PointDomainService {
         userPointWalletRepository.userPointWalletAddBalance(walletId, actualCancelAmount, now);
 
         // 8. 고객 포인트 재조회
-        UserPointWallet wallet = userPointWalletRepository.findById(walletId)
+         wallet = userPointWalletRepository.findByIdForUpdate(walletId)
             .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
 
         long remainingUsageAmount = original.getUsedAmount() - (alreadyCancelled + actualCancelAmount);
@@ -488,6 +496,13 @@ public class PointDomainService {
      */
     private void refreshExpirationInfo(UserPointWallet wallet, LocalDate today, LocalDateTime now) {
         String walletId = wallet.getWalletId();
+        
+        // 만료 처리 시점에 지갑 행 락 획득
+        UserPointWallet lockedWallet = userPointWalletRepository.findByIdForUpdate(walletId)
+            .orElseThrow(() -> new PointApiException(ErrorCode.WALLET_NOT_FOUND));
+        if (!isRefreshExpirationInfo(lockedWallet, today)) {
+            return;
+        }
 
         // 만료대상 적립 건 조회 
         List<PointEarnRecord> expiredRecords = pointEarnRecordRepository 

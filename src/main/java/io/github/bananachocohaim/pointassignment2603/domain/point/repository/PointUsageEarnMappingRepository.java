@@ -35,8 +35,9 @@ public interface PointUsageEarnMappingRepository extends JpaRepository<PointUsag
 
     /**
      * 원거래(usageId)에 연결된 USE 타입 매핑 전체 조회 (취소 시 적립 건별 환급 대상 파악용).
+     * 사용일(usageCreatedDate) 오름차순 정렬로 반환 (먼저 사용된 적립부터 환급 처리).
      */
-    @Query("SELECT m FROM PointUsageEarnMapping m WHERE m.id.walletId = :walletId AND m.id.usageId = :usageId")
+    @Query("SELECT m FROM PointUsageEarnMapping m WHERE m.id.walletId = :walletId AND m.id.usageId = :usageId ORDER BY m.id.usageCreatedDate ASC")
     List<PointUsageEarnMapping> findUseMappingsByOriginalUsage(
         @Param("walletId") String walletId,
         @Param("usageId") String usageId

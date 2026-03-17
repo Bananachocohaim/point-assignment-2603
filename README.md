@@ -12,7 +12,7 @@ Spring Boot 기반 포인트 관리 시스템.
 | Language | Java 21 |
 | Framework | Spring Boot 3.5.11 |
 | Persistence | Spring Data JPA |
-| Database | H2 (파일 모드, MySQL 호환) |
+| Database | H2 (메모리 모드, MySQL 호환) |
 | Build | Gradle |
 | API Docs | SpringDoc OpenAPI (Swagger UI) |
 | 기타 | Lombok, DevTools |
@@ -21,16 +21,7 @@ Spring Boot 기반 포인트 관리 시스템.
 
 ## 실행 방법
 
-### 1. 최초 실행 / 스키마 변경 후
-
-H2는 파일 기반 DB이므로 스키마가 변경된 경우 기존 DB 파일을 삭제해야 합니다.
-
-```bash
-# 프로젝트 루트의 data 폴더 삭제
-rm -rf data/
-```
-
-### 2. 애플리케이션 실행
+### 1. 애플리케이션 실행
 
 ```bash
 ./gradlew bootRun
@@ -38,13 +29,37 @@ rm -rf data/
 
 > Windows 터미널에서 한글 로그를 올바르게 출력하려면 먼저 `chcp 65001`을 실행하세요.
 
-### 3. 접속 주소
+### 2. 접속 주소
 
 | 경로 | 내용 |
 |---|---|
 | `http://localhost:8080/admin-policy.html` | 어드민 관리 화면 |
 | `http://localhost:8080/swagger-ui.html` | Swagger API 문서 |
 | `http://localhost:8080/h2-console` | H2 콘솔 |
+
+> 현재 설정은 `jdbc:h2:mem:pointdb` 이므로 애플리케이션 재시작 시 데이터는 초기화됩니다.
+
+### 3. H2 콘솔 접속 값
+
+H2 콘솔에서 아래 값으로 접속합니다.
+
+| 항목 | 값 |
+|---|---|
+| JDBC URL | `jdbc:h2:mem:pointdb` |
+| User Name | `sa` |
+| Password | (빈 값) |
+
+---
+
+## 설계 리소스
+
+프로젝트 리소스 경로에 아래 산출물이 포함되어 있습니다.
+
+| 구분 | 파일 경로 |
+|---|---|
+| DB ERD | `src/main/resources/docs/erd/point-assignment-2603-ERD_20260317.png` |
+| AWS 아키텍처 | `src/main/resources/aws/arch/point-assignment-2603-AWS-20260317.png` |
+
 
 ---
 
@@ -232,7 +247,7 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 
 1. 지갑 조회 → 만료 처리 선행
 2. 1회 최대 적립 금액 체크 (정책: `MAX_EARN_AMOUNT_PER_TX`)
-3. 보유 한도 체크 (지갑별 `max_balance_limit`)
+3. 보유 한도 체크 (지갑별 `max_balance_limit`, 단 `RE_EARN`은 예외)
 4. 적립 원장 INSERT (중복 `orderNo` 허용, 동일 `earnId` 중복 시 409)
 5. 지갑 잔액 증가
 
@@ -252,7 +267,7 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 - **부분 취소(`PARTIAL_CANCEL`)**: 취소 금액 필수(1원 이상). 이미 취소된 금액 + 이번 취소 금액 ≤ 원거래 금액
 - 적립 원장 환급 시:
   - `ACTIVE` 건: 잔액 직접 복원
-  - `EXPIRED` 건: 신규 `RE_EARN` 적립 생성 (원 `expiryDays` 기준으로 만료일 재계산)
+  - `EXPIRED` 건: 신규 `RE_EARN` 적립 생성 (정책 `RE_EARN_EXPIRY_DAYS` 기준으로 만료일 재계산)
 
 ### 만료 처리 (Lazy Refresh)
 
@@ -261,7 +276,14 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 1. `expiration_date <= today` 인 ACTIVE 적립 건을 `EXPIRED` 처리, 잔액 0으로 일괄 변경
 2. 지갑 잔액에서 만료 금액 차감
 3. 다음 만료 예정 정보(날짜, 금액) 갱신
-4. `expiration_updated_at` 이 오늘 날짜 이후이면 갱신 생략 (당일 중복 처리 방지)
+4. 지갑 행 `FOR UPDATE` 잠금 이후 `expiration_updated_at` 재확인으로 당일 중복 갱신 방지
+
+### 동시성 제어
+
+- 지갑 단위 연산(적립/사용/사용취소/적립취소/만료처리)은 `findByIdForUpdate`로 지갑 행에 비관적 락을 획득해 직렬화합니다.
+- 포인트 사용 시 차감 대상 적립 건 조회는 `FOR UPDATE`로 잠그고, 차감은 `remaining_amount >= useAmount` 조건으로 원자 업데이트합니다.
+- 취소 환급은 `(remaining_amount + restoreAmount) <= original_amount` 조건으로 원자 업데이트해 원금 초과를 방지합니다.
+- 지갑 차감은 `balance >= amount` 조건으로 원자 업데이트해 음수 잔액을 방지합니다.
 
 ### 멱등성
 
@@ -284,6 +306,7 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 | 키 | 기본값 | 설명 |
 |---|---|---|
 | `MAX_EARN_AMOUNT_PER_TX` | 100,000 | 1회 최대 적립 가능 금액 (원) |
+| `RE_EARN_EXPIRY_DAYS` | 3 | 취소 재적립 만료일수 (일) |
 
 > `http://localhost:8080/admin-policy.html` 에서 변경 가능
 
@@ -326,5 +349,34 @@ Query: userId (필수), walletType (선택: FREE | CASH)
 | 적립 이력 탭 | 상태 필터(전체/ACTIVE/EXPIRED/CANCELLED) + 이력 테이블 + 합계 행. 정렬: MANUAL 우선 → 만료일 오름차순 |
 | 사용 이력 탭 | USE 이력 + 차감 적립건 서브테이블 (원금·잔액·차감액·합계) |
 | 취소 이력 탭 | 부분/전체 취소 이력 + 원거래 정보 서브테이블 + 환급 적립건 서브테이블 |
-| 거래 입력 | 적립 / 적립취소 / 사용 / 사용취소 폼. 지갑 선택 시 ID 자동 입력. 응답 레이어 팝업 표시 |
 | 보유한도 변경 | 지갑별 max_balance_limit 수정 (FREE 타입 전용) |
+
+---
+
+## 테스트
+
+- 동시성/정합성 검증용 통합 테스트: `PointConcurrencyIntegrityTest`
+- 포함 케이스:
+  - 230원 적립 10회 동시 호출
+  - 230원 사용 10회 동시 호출
+  - 동일 원거래 사용취소 10회 동시 호출
+  - 서로 다른 적립건 적립취소 10회 동시 호출
+
+### 실행 방법
+
+```bash
+./gradlew test --tests "*PointConcurrencyIntegrityTest" --info
+```
+
+- 테스트는 `@SpringBootTest`로 애플리케이션 컨텍스트를 직접 띄워 수행합니다.
+- 별도 로컬 서버를 미리 띄울 필요가 없습니다. (`bootRun` 없이 실행 가능)
+- 콘솔 로그는 `build.gradle`의 `testLogging` 설정으로 요청/응답/결과를 출력합니다.
+
+### 로그 확인 위치
+
+| 파일 | 설명 |
+|---|---|
+| `build/test-logs/point-concurrency.log` | 동시성 테스트 상세 추적 로그 |
+| `build/test-results/test/TEST-io.github.bananachocohaim.pointassignment2603.PointConcurrencyIntegrityTest.xml` | JUnit XML 결과 |
+
+> `build/test-logs/`는 `.gitignore`에 포함되어 Git에 커밋되지 않습니다.

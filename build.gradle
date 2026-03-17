@@ -43,6 +43,12 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+		// 테스트 실행 시 로그/출력을 콘솔에 그대로 노출
+		showStandardStreams = true
+		events "passed", "failed", "skipped", "standardOut", "standardError"
+		exceptionFormat "full"
+	}
 }
 
 bootRun {

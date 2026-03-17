@@ -3,8 +3,10 @@ package io.github.bananachocohaim.pointassignment2603.domain.point.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,9 +14,18 @@ import org.springframework.stereotype.Repository;
 
 import io.github.bananachocohaim.pointassignment2603.domain.point.entity.UserPointWallet;
 import io.github.bananachocohaim.pointassignment2603.domain.point.entity.WalletType;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface UserPointWalletRepository extends JpaRepository<UserPointWallet, String> {
+
+    /**
+     * wallet_id 단건 조회 + 비관적 쓰기 락
+     * 동시성 제어가 필요한 트랜잭션(적립/사용/취소/만료처리)에서 사용.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM UserPointWallet u WHERE u.walletId = :walletId")
+    Optional<UserPointWallet> findByIdForUpdate(@Param("walletId") String walletId);
 
     //사용자 포인트지갑 조회
     @Query(value = """
